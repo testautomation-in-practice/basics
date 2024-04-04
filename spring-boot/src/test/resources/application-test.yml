@@ -1,4 +1,0 @@
-spring:
-  mongodb:
-    embedded:
-      version: 4.0.12
