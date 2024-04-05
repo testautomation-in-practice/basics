@@ -33,6 +33,9 @@ dependencies {
     implementation("org.testcontainers:localstack")
     implementation("org.testcontainers:mongodb")
 
+    testImplementation("io.github.logrecorder:logrecorder-junit5:2.9.0")
+    testImplementation("io.github.logrecorder:logrecorder-logback:2.9.0")
+    testImplementation("io.github.logrecorder:logrecorder-assertions:2.9.0")
     testImplementation("io.kotest:kotest-assertions-core:5.6.2")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
