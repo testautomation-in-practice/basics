@@ -40,12 +40,12 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("com.ninja-squad:springmockk:3.1.1")
-    testImplementation("de.flapdoodle.embed:de.flapdoodle.embed.mongo:4.7.0")
     testImplementation("io.mockk:mockk:1.13.8")
     testImplementation("org.mockito:mockito-core:5.7.0")
     testImplementation("io.rest-assured:rest-assured")
     testImplementation("io.rest-assured:kotlin-extensions:4.5.1") // sadly not managed by Spring
     testImplementation("org.testcontainers:junit-jupiter:1.18.1")
+    testImplementation("org.testcontainers:mongodb:1.18.1")
 
     kapt("org.springframework.boot:spring-boot-configuration-processor")
 }
