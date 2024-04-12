@@ -6,7 +6,7 @@ import example.spring.boot.domains.books.model.State
 import example.spring.boot.domains.books.model.primitives.Borrower
 import example.spring.boot.domains.books.model.primitives.Isbn
 import example.spring.boot.domains.books.model.primitives.Title
-import java.util.UUID
+import java.util.*
 
 /**
  * Data structure used as external representation of the internal model.
