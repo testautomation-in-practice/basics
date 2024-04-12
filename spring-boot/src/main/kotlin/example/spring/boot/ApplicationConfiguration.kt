@@ -53,6 +53,10 @@ class ApplicationConfiguration(private val s3: AmazonS3) {
     }
 }
 
+// In a real application, these initializers would not be part of the production code.
+// We do it like this for the example application because it makes it easier to start a local instance.
+// Usually these would be on the test classpath and only used during testing.
+
 class S3Initializer : ApplicationContextInitializer<GenericApplicationContext> {
     override fun initialize(applicationContext: GenericApplicationContext) {
         val container = S3Container().withServices(LocalStackContainer.Service.S3).apply { start() }
