@@ -37,7 +37,12 @@ class BooksApiTest : SpringRestTest() {
             every { bookRepository.insert(any()) } just Runs
             every { bookEventPublisher.publish(any()) } just Runs
 
-            val exchange = rest.exchange("/api/books", HttpMethod.POST, requestEntity, String::class.java)
+            val exchange = rest.exchange(
+                "/api/books",
+                HttpMethod.POST,
+                requestEntity,
+                String::class.java
+            )
 
             assertThat(exchange.statusCode).isEqualTo(CREATED)
 

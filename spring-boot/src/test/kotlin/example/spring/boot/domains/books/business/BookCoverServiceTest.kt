@@ -1,24 +1,36 @@
 package example.spring.boot.domains.books.business
 
+import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model.AmazonS3Exception
+import example.spring.boot.S3Initializer
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.context.event.ApplicationStartedEvent
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.annotation.Import
+import org.springframework.context.event.EventListener
 import org.springframework.http.MediaType.TEXT_PLAIN_VALUE
 import org.springframework.http.MediaType.TEXT_XML_VALUE
+import org.springframework.test.context.ContextConfiguration
 import java.util.UUID.randomUUID
 
-class BookCoverServiceTest {
-
-    private val s3 = MockS3()
-    private val cut = BookCoverService(s3)
-
+@SpringBootTest(classes = [BookCoverService::class])
+@ContextConfiguration(initializers = [S3Initializer::class])
+@Import(CreateBucket::class)
+@Suppress("SpringJavaInjectionPointsAutowiringInspection")
+class BookCoverServiceTest @Autowired constructor(
+    private val cut : BookCoverService
+) {
     private val bytes = "123".toByteArray()
-
+    
     @Test
     fun `fails when there are no covers`() {
-        val error = shouldThrow<AmazonS3Exception> { cut.findCover(randomUUID()) }
+        val error = shouldThrow<AmazonS3Exception> {
+            cut.findCover(randomUUID())
+        }
 
         error.statusCode shouldBe 404
     }
@@ -62,3 +74,13 @@ class BookCoverServiceTest {
     }
 }
 
+private class CreateBucket(
+    private val s3: AmazonS3
+) {
+
+    @EventListener(ApplicationStartedEvent::class)
+    fun onStartUp() {
+        s3.createBucket(BUCKET_NAME)
+    }
+
+}

@@ -28,8 +28,10 @@ class MockS3(private val s3: AmazonS3 = mockk<AmazonS3>()) : AmazonS3 by s3 {
     }
 
     override fun getObject(bucketName: BucketName, key: BookId): S3Object {
-        val bucket = store[bucketName] ?: throw AmazonS3Exception("Not found").apply { statusCode = 404 }
-        val savedObject = bucket[key] ?: throw AmazonS3Exception("Not found").apply { statusCode = 404 }
+        val bucket = store[bucketName]
+            ?: throw AmazonS3Exception("Not found").apply { statusCode = 404 }
+        val savedObject = bucket[key]
+            ?: throw AmazonS3Exception("Not found").apply { statusCode = 404 }
 
         return S3Object().also { s3Object ->
             s3Object.bucketName = bucketName
