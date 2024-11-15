@@ -12,7 +12,9 @@ import io.github.logrecorder.junit5.RecordLoggers
 import io.kotest.assertions.throwables.shouldThrowAny
 import io.kotest.matchers.shouldBe
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.runs
 import io.mockk.verify
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
@@ -25,8 +27,8 @@ import java.util.UUID
 
 class BookCollectionTests {
 
-    private val repository: BookRepository = mockk(relaxUnitFun = true)
-    private val eventPublisher: BookEventPublisher = mockk(relaxUnitFun = true)
+    private val repository: BookRepository = mockk()
+    private val eventPublisher: BookEventPublisher = mockk()
     private val idGenerator: IdGenerator = mockk()
     private val clock: Clock = Clock.fixed(Instant.parse("2024-11-08T12:34:56.789Z"), ZoneId.of("UTC"))
     private val cut = BookCollection(repository, eventPublisher, idGenerator, clock)
@@ -41,6 +43,8 @@ class BookCollectionTests {
     @BeforeEach
     fun stubDefaultBehaviour() {
         every { idGenerator.generateId() } returns bookId
+        every { repository.insert(any()) } just runs
+        every { eventPublisher.publish(any()) } just runs
     }
 
     @Nested
@@ -82,6 +86,17 @@ class BookCollectionTests {
                 cut.addBook(lordOfTheRings)
             }
             ex shouldBe exception
+        }
+    }
+
+    @Nested
+    inner class GetBook {
+
+        @Test
+        fun `getting a book loads it from the database`() {
+            every { repository.get(bookId) } returns lordOfTheRingsBook
+            val result = cut.getBook(bookId)
+            result shouldBe lordOfTheRingsBook
         }
     }
 }
