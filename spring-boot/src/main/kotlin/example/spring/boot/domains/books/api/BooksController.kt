@@ -7,6 +7,7 @@ import example.spring.boot.domains.books.business.BookCoverService
 import example.spring.boot.domains.books.business.BookNotFound
 import example.spring.boot.domains.books.business.BookUpdateFailed
 import example.spring.boot.domains.books.model.BookData
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.io.InputStreamResource
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpStatus.CONFLICT

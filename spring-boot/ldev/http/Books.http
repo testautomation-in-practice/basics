@@ -50,8 +50,8 @@ Content-Type: image/jpeg
 
 
 ### Get Clean Code Cover
-GET {{url}}/api/books/{{clean-code}}/cover
-Authorization: {{user-auth}}
+GET {{url}}/api/books/{{clean-code}}
+Authorization: {{curator-auth}}
 
 
 

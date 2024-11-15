@@ -1,0 +1,11 @@
+{
+  "id": "7f259300-8feb-4b31-84d1-e09e8630cf24",
+  "data": {
+    "isbn": "1234567890",
+    "title": "Test Book",
+    "numberOfPages": null,
+    "authors": []
+  },
+  "available": true,
+  "borrowed": null
+}
