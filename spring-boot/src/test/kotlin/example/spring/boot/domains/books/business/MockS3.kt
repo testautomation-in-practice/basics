@@ -8,12 +8,12 @@ import com.amazonaws.services.s3.model.S3Object
 import io.mockk.mockk
 import java.io.InputStream
 
-typealias BucketName = String
 typealias BookId = String
+typealias BucketName = String
 
 class MockS3(private val s3: AmazonS3 = mockk<AmazonS3>()) : AmazonS3 by s3 {
 
-    private val store: MutableMap<BucketName, MutableMap<BookId, SavedObject>> = HashMap()
+    private val store: MutableMap<BookId, SavedObject> = HashMap()
 
     override fun putObject(
         bucketName: BucketName,
@@ -21,15 +21,13 @@ class MockS3(private val s3: AmazonS3 = mockk<AmazonS3>()) : AmazonS3 by s3 {
         bytes: InputStream,
         metadata: ObjectMetadata,
     ): PutObjectResult {
-        val bucket = store.computeIfAbsent(bucketName) { mutableMapOf() }
-        bucket[key] = SavedObject(String(bytes.readAllBytes()), metadata.contentType, metadata.contentLength)
+        store[key] = SavedObject(String(bytes.readAllBytes()), metadata.contentType, metadata.contentLength)
 
         return PutObjectResult()
     }
 
     override fun getObject(bucketName: BucketName, key: BookId): S3Object {
-        val bucket = store[bucketName] ?: throw AmazonS3Exception("Not found").apply { statusCode = 404 }
-        val savedObject = bucket[key] ?: throw AmazonS3Exception("Not found").apply { statusCode = 404 }
+        val savedObject = store[key] ?: throw AmazonS3Exception("Not found").apply { statusCode = 404 }
 
         return S3Object().also { s3Object ->
             s3Object.bucketName = bucketName
