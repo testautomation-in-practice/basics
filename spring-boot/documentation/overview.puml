@@ -1,5 +1,5 @@
 @startuml
-!theme cerulean
+!theme toy
 'https://plantuml.com/component-diagram
 
 ()HTTP
@@ -12,8 +12,9 @@ package "Books" {
 	[BookEventPublisher]
 }
 
-database "AWS" {
-    [S3]
+cloud "AWS" {
+    database "S3"
+    database "MongoDB"
 }
 
 package "Enrichment" {
@@ -29,6 +30,7 @@ HTTP -d-> [BookController]
 [BookCollection] --> [BookRepository]
 [BookCollection] --> [BookEventPublisher]
 [BookCoverService] --> [S3]
+[BookRepository] --> [MongoDB]
 
 [BookEventPublisher] .- [EnrichAddedBookEventListener]
 
