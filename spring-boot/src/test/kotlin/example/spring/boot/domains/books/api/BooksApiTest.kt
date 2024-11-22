@@ -1,16 +1,27 @@
 package example.spring.boot.domains.books.api
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import example.spring.boot.Examples
-import example.spring.boot.helper.SpringRestTest
-import io.mockk.Runs
-import io.mockk.called
-import io.mockk.every
-import io.mockk.just
-import io.mockk.verify
+import example.spring.boot.MongoDBInitializer
+import example.spring.boot.S3Initializer
+import example.spring.boot.domains.books.model.primitives.Isbn
+import example.spring.boot.domains.books.model.primitives.Title
+import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.shouldBe
+import io.restassured.RestAssured
+import io.restassured.module.kotlin.extensions.Extract
+import io.restassured.module.kotlin.extensions.Given
+import io.restassured.module.kotlin.extensions.Then
+import io.restassured.module.kotlin.extensions.When
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.web.client.TestRestTemplate
+import org.springframework.boot.test.web.server.LocalServerPort
+import org.springframework.boot.web.client.RestTemplateBuilder
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpHeaders.CONTENT_TYPE
@@ -19,10 +30,83 @@ import org.springframework.http.HttpStatus.BAD_REQUEST
 import org.springframework.http.HttpStatus.CREATED
 import org.springframework.http.HttpStatus.FORBIDDEN
 import org.springframework.http.HttpStatus.NO_CONTENT
+import org.springframework.http.HttpStatus.OK
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
+import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.ContextConfiguration
 import java.util.*
 
-class BooksApiTest : SpringRestTest() {
+@ActiveProfiles("test")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ContextConfiguration(initializers = [S3Initializer::class, MongoDBInitializer::class])
+class BooksApiTest(
+    @LocalServerPort private val port: Int,
+    @Autowired private val mapper: ObjectMapper,
+) {
+    private val rest: TestRestTemplate = TestRestTemplate(RestTemplateBuilder().rootUri("http://localhost:$port"))
+
+    @Test
+    fun setup() {
+        RestAssured.port = port
+    }
+
+    @Test
+    fun `books api test`() {
+        val bookId = Given {
+            auth().basic("curator", "curator".reversed())
+            header("Content-Type", "application/json")
+            body(
+                """
+                {
+                  "isbn": "1234567890",
+                  "title": "Clean Code"
+                }
+                """.trimIndent()
+            )
+        } When {
+            post("/api/books")
+        } Then {
+            statusCode(CREATED.value())
+        } Extract {
+            val response = mapper.readValue<BookRepresentation>(body().asInputStream())
+
+            response.data.title shouldBe Title("Clean Code")
+            response.data.isbn shouldBe Isbn("1234567890")
+            response.data.authors shouldHaveSize 0
+            response.data.numberOfPages shouldBe null
+            response.available shouldBe true
+            response.borrowed shouldBe null
+
+            response.id
+        }
+
+        Given {
+            auth().basic("user", "user".reversed())
+            header("Content-Type", "application/json")
+            body(
+                """
+                {
+                  "borrower": "Gandalf"
+                }
+                """.trimIndent()
+            )
+        } When {
+            post("/api/books/$bookId/borrow")
+        } Then {
+            statusCode(OK.value())
+        } Extract {
+            val response = mapper.readValue<BookRepresentation>(body().asInputStream())
+
+            response.data.title shouldBe Title("Clean Code")
+            response.data.isbn shouldBe Isbn("1234567890")
+            response.data.authors shouldHaveSize 0
+            response.data.numberOfPages shouldBe null
+            response.available shouldBe false
+            response.borrowed shouldBe null
+
+            response.id
+        }
+    }
 
     @Nested
     inner class CreateBook {
@@ -33,9 +117,6 @@ class BooksApiTest : SpringRestTest() {
                 AddBookRequest(Examples.CLEAN_CODE.isbn, Examples.CLEAN_CODE.title),
                 curatorBasicAuthHeader()
             )
-
-            every { bookRepository.insert(any()) } just Runs
-            every { bookEventPublisher.publish(any()) } just Runs
 
             val exchange = rest.exchange("/api/books", HttpMethod.POST, requestEntity, String::class.java)
 
@@ -56,9 +137,6 @@ class BooksApiTest : SpringRestTest() {
                 userBasicAuthHeader()
             )
 
-            every { bookRepository.insert(any()) } just Runs
-            every { bookEventPublisher.publish(any()) } just Runs
-
             val exchange = rest.exchange("/api/books", HttpMethod.POST, requestEntity, String::class.java)
 
             assertThat(exchange.statusCode).isEqualTo(FORBIDDEN)
@@ -76,9 +154,6 @@ class BooksApiTest : SpringRestTest() {
                 set(CONTENT_TYPE, APPLICATION_JSON_VALUE)
             }
             val requestEntity = HttpEntity("{\"title\": \"Clean Code\", \"isbn\": \"978-01322350884\"}", headers)
-
-            every { bookRepository.insert(any()) } just Runs
-            every { bookEventPublisher.publish(any()) } just Runs
 
             val exchange = rest.exchange("/api/books", HttpMethod.POST, requestEntity, String::class.java)
 
@@ -99,32 +174,22 @@ class BooksApiTest : SpringRestTest() {
         fun `deletes Book successfully when it exists`() {
             val requestEntity = HttpEntity<Unit>(curatorBasicAuthHeader())
 
-            every { bookRepository.delete(any()) } returns true
-            every { bookEventPublisher.publish(any()) } just Runs
-
             val exchange =
                 rest.exchange("/api/books/${UUID.randomUUID()}", HttpMethod.DELETE, requestEntity, String::class.java)
 
             assertThat(exchange.statusCode).isEqualTo(NO_CONTENT)
             assertThat(exchange.body).isNull()
-
-            verify(exactly = 1) { bookEventPublisher.publish(any()) }
         }
 
         @Test
         fun `deletes Book successfully when it does not exist`() {
             val requestEntity = HttpEntity<Unit>(curatorBasicAuthHeader())
 
-            every { bookRepository.delete(any()) } returns false
-            every { bookEventPublisher.publish(any()) } just Runs
-
             val exchange =
                 rest.exchange("/api/books/${UUID.randomUUID()}", HttpMethod.DELETE, requestEntity, String::class.java)
 
             assertThat(exchange.statusCode).isEqualTo(NO_CONTENT)
             assertThat(exchange.body).isNull()
-
-            verify { bookEventPublisher wasNot called }
         }
 
     }

@@ -18,14 +18,16 @@ import java.util.UUID.randomUUID
 
 @SpringBootTest(classes = [BookCoverService::class])
 @ContextConfiguration(initializers = [S3Initializer::class])
-@Import(CreateBucketConfig::class)
+@Import(CreateBucketConfig2::class)
 class BookCoverServiceTest2(@Autowired private val cut: BookCoverService) {
 
     private val bytes = "123".toByteArray()
 
     @Test
     fun `returns null when there are no covers`() {
-        val error = shouldThrow<AmazonS3Exception> { cut.findCover(randomUUID()) }
+        val error = shouldThrow<AmazonS3Exception> {
+            cut.findCover(randomUUID())
+        }
 
         error.statusCode shouldBe 404
     }
@@ -36,7 +38,9 @@ class BookCoverServiceTest2(@Autowired private val cut: BookCoverService) {
         val otherId = randomUUID()
         cut.saveCover(id, bytes, TEXT_PLAIN_VALUE)
 
-        val error = shouldThrow<AmazonS3Exception> { cut.findCover(otherId) }
+        val error = shouldThrow<AmazonS3Exception> {
+            cut.findCover(otherId)
+        }
 
         error.statusCode shouldBe 404
     }
@@ -68,7 +72,7 @@ class BookCoverServiceTest2(@Autowired private val cut: BookCoverService) {
     }
 }
 
-private class CreateBucketConfig(private val s3: AmazonS3) {
+private class CreateBucketConfig2(private val s3: AmazonS3) {
 
     @EventListener
     fun createBucket(event: ApplicationStartedEvent) {

@@ -1,14 +1,24 @@
 package example.spring.boot.domains.books.business
 
+import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model.AmazonS3Exception
+import example.spring.boot.S3Initializer
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.springframework.boot.context.event.ApplicationStartedEvent
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.annotation.Import
+import org.springframework.context.event.EventListener
 import org.springframework.http.MediaType.TEXT_PLAIN_VALUE
 import org.springframework.http.MediaType.TEXT_XML_VALUE
+import org.springframework.test.context.ContextConfiguration
 import java.util.UUID.randomUUID
 
+@SpringBootTest(classes = [BookCoverService::class])
+@ContextConfiguration(initializers = [S3Initializer::class])
+@Import(CreateBucketConfig::class)
 class BookCoverServiceTest {
 
     private val s3 = MockS3()
@@ -62,3 +72,10 @@ class BookCoverServiceTest {
     }
 }
 
+private class CreateBucketConfig(private val s3: AmazonS3) {
+
+    @EventListener
+    fun createBucket(event: ApplicationStartedEvent) {
+        s3.createBucket(BUCKET_NAME)
+    }
+}
